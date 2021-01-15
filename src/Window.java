@@ -20,14 +20,17 @@ public class Window implements ActionListener {
 
     //  Labels
     JLabel labelParameters;
-    JLabel labelParameterA;
-    JLabel labelParameterB;
-    JLabel labelParameterC;
     JLabel labelNormalVector;
-    JLabel labelNormalVectorX;
-    JLabel labelNormalVectorY;
-    JLabel labelNormalVectorZ;
     JLabel labelIterationsCount;
+
+    //  Text field
+    JTextField fieldParameterA;
+    JTextField fieldParameterB;
+    JTextField fieldParameterC;
+    JTextField fieldNormalVectorX;
+    JTextField fieldNormalVectorY;
+    JTextField fieldNormalVectorZ;
+    JTextField fieldIterationsCount;
 
     //  Buttons
     JButton buttonReset;
@@ -47,17 +50,22 @@ public class Window implements ActionListener {
         listener = new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
-                System.out.println(-99);
             }
 
             @Override
             public void keyPressed(KeyEvent e) {
-                System.out.println(123456);
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                System.out.println(-0);
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_UP -> System.out.println("↑");
+                    case KeyEvent.VK_DOWN -> System.out.println("↓");
+                    case KeyEvent.VK_LEFT -> System.out.println("←");
+                    case KeyEvent.VK_RIGHT -> System.out.println("→");
+                    case KeyEvent.VK_PLUS -> System.out.println("+");
+                    case KeyEvent.VK_MINUS, KeyEvent.VK_EQUALS -> System.out.println("-");
+                }
             }
         };
         frame = new JFrame();
@@ -84,19 +92,19 @@ public class Window implements ActionListener {
         controlPanel.add(labelParameters, gridBagConstraints);
 
         gridBagConstraints.gridx = 2;
-        labelParameterA = new JLabel("a: ");
-        labelParameterA.addKeyListener(listener);
-        controlPanel.add(labelParameterA, gridBagConstraints);
+        fieldParameterA = new JTextField("a: ");
+        fieldParameterA.setColumns(5);
+        controlPanel.add(fieldParameterA, gridBagConstraints);
 
-        labelParameterB = new JLabel("b: ");
-        labelParameterB.addKeyListener(listener);
+        fieldParameterB = new JTextField("b: ");
+        fieldParameterB.setColumns(5);
         gridBagConstraints.gridx = 3;
-        controlPanel.add(labelParameterB, gridBagConstraints);
+        controlPanel.add(fieldParameterB, gridBagConstraints);
 
-        labelParameterC = new JLabel("c: ");
-        labelParameterC.addKeyListener(listener);
+        fieldParameterC = new JTextField("c: ");
+        fieldParameterC.setColumns(5);
         gridBagConstraints.gridx = 4;
-        controlPanel.add(labelParameterC, gridBagConstraints);
+        controlPanel.add(fieldParameterC, gridBagConstraints);
 
         //  Reset
         buttonReset = new JButton("Сбросить");
@@ -112,20 +120,20 @@ public class Window implements ActionListener {
         gridBagConstraints.gridy = 2;
         controlPanel.add(labelNormalVector, gridBagConstraints);
 
-        labelNormalVectorX = new JLabel("x: ");
-        labelNormalVectorX.addKeyListener(listener);
+        fieldNormalVectorX = new JTextField("x: ");
+        fieldNormalVectorX.setColumns(5);
         gridBagConstraints.gridx = 2;
-        controlPanel.add(labelNormalVectorX, gridBagConstraints);
+        controlPanel.add(fieldNormalVectorX, gridBagConstraints);
 
-        labelNormalVectorY = new JLabel("y: ");
-        labelNormalVectorY.addKeyListener(listener);
+        fieldNormalVectorY = new JTextField("y: ");
+        fieldNormalVectorY.setColumns(5);
         gridBagConstraints.gridx = 3;
-        controlPanel.add(labelNormalVectorY, gridBagConstraints);
+        controlPanel.add(fieldNormalVectorY, gridBagConstraints);
 
-        labelNormalVectorZ = new JLabel("z: ");
-        labelNormalVectorZ.addKeyListener(listener);
+        fieldNormalVectorZ = new JTextField("z: ");
+        fieldNormalVectorZ.setColumns(5);
         gridBagConstraints.gridx = 4;
-        controlPanel.add(labelNormalVectorZ, gridBagConstraints);
+        controlPanel.add(fieldNormalVectorZ, gridBagConstraints);
 
         //  Iterations count
         labelIterationsCount = new JLabel("Количество итераций: ");
@@ -133,6 +141,10 @@ public class Window implements ActionListener {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         controlPanel.add(labelIterationsCount, gridBagConstraints);
+        fieldIterationsCount = new JTextField("26000");
+        fieldIterationsCount.setColumns(5);
+        gridBagConstraints.gridx = 2;
+        controlPanel.add(fieldIterationsCount, gridBagConstraints);
 
         //  Move panel
         GridBagConstraints moveConstraints = new GridBagConstraints();

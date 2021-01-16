@@ -5,7 +5,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class Window implements ActionListener {
+public class Window extends Lorenz implements ActionListener {
     //  Size of frame
     final int WIDTH = 900;
     final int HEIGHT = 600;
@@ -40,6 +40,7 @@ public class Window implements ActionListener {
     JButton buttonRight;
     JButton buttonZoomUp;
     JButton buttonZoomDown;
+    JButton buttonDraw;
 
 
     GridBagConstraints gridBagConstraints;
@@ -48,14 +49,37 @@ public class Window implements ActionListener {
 
     public Window() {
         listener = new KeyListener() {
+            /**
+             * Invoked when a key has been typed.
+             * See the class description for {@link KeyEvent} for a definition of
+             * a key typed event.
+             *
+             * @param e the event to be processed
+             */
             @Override
             public void keyTyped(KeyEvent e) {
+
             }
 
+            /**
+             * Invoked when a key has been pressed.
+             * See the class description for {@link KeyEvent} for a definition of
+             * a key pressed event.
+             *
+             * @param e the event to be processed
+             */
             @Override
             public void keyPressed(KeyEvent e) {
+
             }
 
+            /**
+             * Invoked when a key has been released.
+             * See the class description for {@link KeyEvent} for a definition of
+             * a key released event.
+             *
+             * @param e the event to be processed
+             */
             @Override
             public void keyReleased(KeyEvent e) {
                 switch (e.getKeyCode()) {
@@ -135,6 +159,12 @@ public class Window implements ActionListener {
         gridBagConstraints.gridx = 4;
         controlPanel.add(fieldNormalVectorZ, gridBagConstraints);
 
+        buttonDraw = new JButton("Нарисовать");
+        gridBagConstraints.gridx = 5;
+        buttonDraw.addKeyListener(listener);
+        buttonDraw.addActionListener(this);
+        controlPanel.add(buttonDraw, gridBagConstraints);
+
         //  Iterations count
         labelIterationsCount = new JLabel("Количество итераций: ");
         labelIterationsCount.addKeyListener(listener);
@@ -191,12 +221,18 @@ public class Window implements ActionListener {
         containerPanel.setLayout(new BorderLayout());
         containerPanel.add(controlPanel, BorderLayout.NORTH);
         containerPanel.add(movePanel, BorderLayout.SOUTH);
+        containerPanel.add(this, BorderLayout.CENTER);
         containerPanel.setDoubleBuffered(true);
         frame.setFocusable(true);
         frame.add(containerPanel);
         frame.setVisible(true);
     }
 
+    /**
+     * Invoked when an action occurs.
+     *
+     * @param event the event to be processed
+     */
     @Override
     public void actionPerformed(ActionEvent event) {
         Object source = event.getSource();
@@ -215,5 +251,6 @@ public class Window implements ActionListener {
         } else if (source.equals(buttonZoomDown)) {
             System.out.println(buttonZoomDown.getText());
         }
+        repaint();
     }
 }

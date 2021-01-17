@@ -4,24 +4,82 @@ import java.awt.*;
 import java.awt.geom.Line2D;
 
 public class Lorenz extends JPanel {
-    private static final double TINY = 0.000001;
-    private final double[] normalVector = new double[3];
+    private static final double EPS = 0.000001;
     private final double[] u = new double[3];
-    private final double[] parameters = new double[3];
-    private final double[] p = new double[3];
-    private final double[] l_max = new double[3];
-    private final double[] l_min = new double[3];
-    private final long iterations = 26000;
-    private final long iterationLapse = Math.min(500, iterations / 2);
-    private double[] v = new double[3];
-    private final double rotationAngle = 0.0;
-    private final double dZoom = 0.0;
-    private double xmax = 0;
-    private double xmin = 0;
-    private double ymax = 0;
-    private double ymin = 0;
-    private boolean reDraw;
-    private final int orbit = 0;
+    public int vShift = 0, hShift = 0;
+    private double[] normalVector = new double[3];
+    private double[] parameters = new double[3];
+    private long iterations = 60000;
+    private double rotationAngle = 0.0;
+    private double zoom = 0.0;
+    private double xMax = 0;
+    private double xMin = 0;
+    private double yMax = 0;
+    private double yMin = 0;
+
+    public void init() {
+        normalVector[0] = 1;
+        normalVector[1] = 1;
+        normalVector[2] = 1;
+        parameters[0] = 10;
+        parameters[1] = 28;
+        parameters[2] = 2.6666666666666665;
+    }
+
+    public void rotateLeft() {
+        rotationAngle += 10;
+        repaint();
+    }
+
+    public void rotateNull() {
+        rotationAngle = 0;
+        repaint();
+    }
+
+    public void rotateRight() {
+        rotationAngle -= 10;
+        repaint();
+    }
+
+    public void up() {
+        vShift++;
+        repaint();
+    }
+
+    public void down() {
+        vShift--;
+        repaint();
+    }
+
+    public void left() {
+        hShift++;
+        repaint();
+    }
+
+    public void right() {
+        hShift--;
+        repaint();
+    }
+
+    public void plus() {
+        zoom += 10;
+        repaint();
+    }
+
+    public void minus() {
+        zoom -= 10;
+        repaint();
+    }
+
+    public void draw() {
+        normalVector = Window.getNormalVector();
+        parameters = Window.getParameters();
+        zoom = vShift = hShift = 0;
+        yMin = yMax = xMin = xMax = rotationAngle = 0;
+        double iterations;
+        if ((iterations = Window.getIterationCount()) > 100)
+            this.iterations = (long) iterations;
+    }
 
     /**
      * Calls the UI delegate's paint method, if the UI delegate
@@ -59,232 +117,148 @@ public class Lorenz extends JPanel {
         graphics2D.setStroke(new BasicStroke(0.3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
         graphics2D.fillRect(0, 0, getSize().width, getSize().height);
         calculatePoints(graphics2D);
-        if (orbit == 0) {
-            paint();
-        }
     }
 
-    private void paint() {
-
-    }
-
-    private double vectorMag(double[] a) {
-        double mag = 0;
+    private double findNormal(double[] a) {
+        double normal = 0;
         for (double i : a)
-            mag += i * i;
-        mag = Math.sqrt(mag);
-        return mag;
+            normal += i * i;
+        normal = Math.sqrt(normal);
+        return normal;
     }
 
-    private double[] orthogonalization(double[] a, double[] b) {
-        double[] c = new double[a.length];
-        c[0] = a[1] * b[2] - a[2] * b[1];
-        c[1] = a[2] * b[0] - a[0] * b[2];
-        c[2] = a[0] * b[1] - a[1] * b[0];
-        return c;
-    }
-
-    private void lorenzBoundingBox(double x, double y, double z) {
-        double[] dtemp = new double[3];
-        dtemp[0] = x;
-        dtemp[1] = y;
-        dtemp[2] = z;
-
-        for (int i = 0; i < 3; i++)
-            if (l_max[i] < dtemp[i])
-                l_max[i] = dtemp[i];
-            else if (l_min[i] > dtemp[i])
-                l_min[i] = dtemp[i];
+    private double[] findDirectionVector(double[] a, double[] b) {
+        double[] directionVector = new double[3];
+        directionVector[0] = a[1] * b[2] - a[2] * b[1];
+        directionVector[1] = a[2] * b[0] - a[0] * b[2];
+        directionVector[2] = a[0] * b[1] - a[1] * b[0];
+        return directionVector;
     }
 
     private void calculatePoints(Graphics2D graphics2D) {
-        normalVector[0] = 8;
-        normalVector[1] = -4;
-        normalVector[2] = 3;
-        parameters[0] = 10;
-        parameters[1] = 28;
-        parameters[2] = 8 / 3;
         int fixedPointsCount = 0;
         double[] fixedPoint = new double[3];
-        double x0, y0, z0, x1, y1, z1;
-        double nxmin = 0, nxmax = 0, nymin = 0, nymax = 0;
-        double pxold, pyold, nx, ny;
+        double x, y, z, x1, y1, z1;
+        double nx, ny, savePx, savePy;
         double px = 0, py = 0;
-        double pHeight = getSize().height;
-        double pWidth = getSize().width;
-        double dtemp;
-        boolean rangesSet = false;
-        for (int i = 0; i < 3 && orbit == 0; i++) {
-            if (Math.abs(normalVector[i]) > TINY) {
-                //Make all parallel planes equivalent by switching to unit n-plane that
-                //has the first non-zero component which is positive
-                dtemp = 1.0;
-                if (normalVector[i] < TINY)
-                    dtemp = -1;
-                //Make u a position vector ON the UNIT-n-plane
-                u[(i + 1) % 3] = 1 + dtemp * normalVector[(i + 1) % 3] / vectorMag(normalVector);
+        double height = getSize().height, width = getSize().width;
+        double normal;
+        for (int i = 0; i < 3; i++) {
+            if (Math.abs(normalVector[i]) > EPS) {
+                //  Делаем все параллельные плоскости эквивалентными сменив их на плоскость нормали
+                normal = 1.0;
+                if (normalVector[i] < EPS)
+                    normal = -1;
+                //  Делаем u на плоскости нормали
+                u[(i + 1) % 3] = 1 + normal * normalVector[(i + 1) % 3] / findNormal(normalVector);
                 u[(i + 2) % 3] = 1;
-                u[i] = vectorMag(normalVector) - (u[(i + 1) % 3] * normalVector[(i + 1) % 3] + u[(i + 2) % 3] * normalVector[(i + 2) % 3]) * dtemp;
-                u[i] /= normalVector[i] * dtemp;
-                //Now make u a direction vector IN the n-plane
+                u[i] = findNormal(normalVector) - (u[(i + 1) % 3] * normalVector[(i + 1) % 3] + u[(i + 2) % 3] * normalVector[(i + 2) % 3]) * normal;
+                u[i] /= normalVector[i] * normal;
                 for (int j = 0; j < 3; j++)
-                    u[j] = u[j] - (dtemp * normalVector[j] / vectorMag(normalVector));
-                //Make u a unit vector
-                dtemp = vectorMag(u);
+                    u[j] = u[j] - (normal * normalVector[j] / findNormal(normalVector));
+                //  Делаем u единичным вектором (нормализуем)
+                normal = findNormal(u);
                 for (int j = 0; j < 3; j++)
-                    u[j] /= dtemp;
-                //Make v perpendicular to u and n
-                v = orthogonalization(normalVector, u);
-                //Make v a unit vector
-                dtemp = vectorMag(v);
-                //Make v lie one the most positive N-plane
-                if (normalVector[i] < TINY)
-                    dtemp *= -1;
+                    u[j] /= normal;
+                //  Делаем v перпендикулярным u и вектор нормали
+                double[] v = findDirectionVector(normalVector, u);
+                //  Делаем v единичным вектором (нормализуем)
+                normal = findNormal(v);
+                if (normalVector[i] < EPS)
+                    normal *= -1;
                 for (int j = 0; j < 3; j++)
-                    v[j] /= dtemp;
+                    v[j] /= normal;
                 break;
-            } else if (vectorMag(normalVector) < TINY) {
-                //n will be freshed in the JPanel  - see Component
+            } else if (findNormal(normalVector) < EPS) {
+                //  Обновляем вектор нормали
                 normalVector[0] = normalVector[1] = normalVector[2] = 1;
                 i = 0;
             }
         }
 
-        for (int j = 0; j < 2; j++) {
-            if (j == 0 && (reDraw || orbit > 2))
-                continue;
-            x0 = 0.1;
-            y0 = 0;
-            z0 = 0;
-            for (int i = 0; i < iterations; i++) {
+        for (int i = 0; i < 2; i++) {
+            x = 3.051522;
+            y = 1.582542;
+            z = 15.62388;
+            for (int j = 0; j < iterations; j++) {
+                double dt = 0.01;
+                x1 = x + parameters[0] * (y - x) * dt;
+                y1 = y + (x * (parameters[1] - z) - y) * dt;
+                z1 = z + (x * y - parameters[2] * z) * dt;
 
-                double h = 0.01;
-                x1 = x0 + h * parameters[0] * (y0 - x0);
-                y1 = y0 + h * (x0 * (parameters[1] - z0) - y0);
-                z1 = z0 + h * (x0 * y0 - parameters[2] * z0);
-                x0 = x1;
-                y0 = y1;
-                z0 = z1;
+                x = x1;
+                y = y1;
+                z = z1;
 
-
-                if (Math.abs(x1 - x0) < TINY && Math.abs(y1 - y0) < TINY && Math.abs(z1 - z0) < TINY) {
-                    if (Math.abs(x1 - fixedPoint[0]) < TINY && Math.abs(y1 - fixedPoint[1]) < TINY && Math.abs(z1 - fixedPoint[2]) < TINY)
-                        fixedPointsCount++;
-                    else {
-                        fixedPoint[0] = x1;
-                        fixedPoint[1] = y1;
-                        fixedPoint[2] = z1;
-                        fixedPointsCount = 0;
-                    }
+                if (Math.abs(x1 - fixedPoint[0]) < EPS && Math.abs(y1 - fixedPoint[1]) < EPS && Math.abs(z1 - fixedPoint[2]) < EPS)
+                    fixedPointsCount++;
+                else {
+                    fixedPoint[0] = x1;
+                    fixedPoint[1] = y1;
+                    fixedPoint[2] = z1;
+                    fixedPointsCount = 0;
                 }
 
-                ///////////////////////// Fixed Points and NaNs
-                if (Double.isNaN(x0)) {
-                    graphics2D.setColor(Color.magenta);
-                    graphics2D.drawString("Lorenz Points have become unbounded", 20, 20);
-                    System.out.println("Lorenz Points have become unbounded");
+                //  Ошибки
+                if (Double.isNaN(x)) {
+                    graphics2D.setColor(Color.RED);
+                    graphics2D.drawString("Точки стали не ограниченными", 20, 20);
                     break;
                 } else if (fixedPointsCount > iterations / 3) {
-                    graphics2D.setColor(Color.magenta);
-                    graphics2D.drawString("Lorenze Points have converged to a fixed point - No Chaotic attractor to show", 20, 20);
-                    System.out.println("Lorenze Points have converged to a fixed point\n - No Chaotic attractor to show");
+                    graphics2D.setColor(Color.RED);
+                    graphics2D.drawString("Аттрактор сходится к единой точке", 20, 20);
                     break;
                 }
 
-                //Map x0 y0 z0 to the n-plane using u and v
+                //  Переводим x y в нормаль благодаря u, v
                 nx = (x1 - normalVector[0]) * u[0] + (y1 - normalVector[1]) * u[1] + (z1 - normalVector[2]) * u[2];
-                ny = (x1 - normalVector[0]) * 0.491 + (y1 - normalVector[1]) * 0.405 + (z1 - normalVector[2]) * 0.77;
+                ny = (x1 - normalVector[0]) + (y1 - normalVector[1]) + (z1 - normalVector[2]);
 
-                //Now Rotate!
-                dtemp = nx * Math.cos(2.0 * Math.PI * rotationAngle / 360) - ny * Math.sin(2.0 * Math.PI * rotationAngle / 360);
+                //  Поворачиваем
+                normal = nx * Math.cos(2.0 * Math.PI * rotationAngle / 360) - ny * Math.sin(2.0 * Math.PI * rotationAngle / 360);
                 ny = nx * Math.sin(2.0 * Math.PI * rotationAngle / 360) + ny * Math.cos(2.0 * Math.PI * rotationAngle / 360);
-                nx = dtemp;
+                nx = normal;
 
-                if (i > iterationLapse) {
-                    if (nx > xmax)
-                        xmax = nx;
-                    else if (nx < xmin)
-                        xmin = nx;
+                long iterationLapse = 500;
+                if (j > iterationLapse) {
+                    if (nx > xMax)
+                        xMax = nx;
+                    else if (nx < xMin)
+                        xMin = nx;
 
-                    if (ny > ymax)
-                        ymax = ny;
-                    else if (ny < ymin)
-                        ymin = ny;
-                    lorenzBoundingBox(x1, y1, z1);
-                } else if (i == iterationLapse) {
-                    xmax = xmin = nx;
-                    xmax += TINY;
-                    ymax = ymin = ny;
-                    ymax += TINY;
-                    lorenzBoundingBox(x1, y1, z1);
+                    if (ny > yMax)
+                        yMax = ny;
+                    else if (ny < yMin)
+                        yMin = ny;
                 }
 
-                //Cant be updated during paintprocess!
-                //Cant change during orbit eaither!
-                if (!rangesSet && ((j == 0 && i == iterations - 1) || j == 1)) {
-                    nymax = ymax;
-                    nymin = ymin;
-                    nxmax = xmax;
-                    nxmin = xmin;
-                    rangesSet = true;
-                }
 
-                if (orbit == 0 && iterations / 4 == i) {
-                    for (int m = 0; m < 3; m++) {
-                        p[m] = (l_max[m] + l_min[m]) / 2;
-                        l_min[m] = l_max[m] = 0.0;
-                    }
-                }
+                //  Теперь подгоняем размеры под экран
+                savePx = px;
+                savePy = py;
+                py = height * (ny - yMin) / (yMax - yMin);
+                py = height - py + height * vShift / 10;
+                px = width * (nx - xMin) / (xMax - xMin) + width * hShift / 10;
 
-                //Now scale to fit the screen
-                pxold = px;
-                pyold = py;
+                //  Меняем приближение
+                px = (px - width / 2) * (100.0 + zoom) / 100.0 + width / 2.0;
+                py = (py - height / 2) * (100.0 + zoom) / 100.0 + height / 2.0;
 
-                py = pHeight * (ny - nymin) / (nymax - nymin);
-                int vShift = 0;
-                py = pHeight - py + pHeight * vShift / 10;
-                int hShift = 0;
-                px = pWidth * (nx - nxmin) / (nxmax - nxmin) + pWidth * hShift / 10;
-
-                //calculate where P is on the screen
-                if (orbit > 0) {
-                    double p_py, p_px, p_ny, p_nx;
-                    //Map p to the n-plane using u and v
-                    p_nx = (0.847 - normalVector[0]) * u[0] + (1.496 - normalVector[1]) * u[1] + (26.155 - normalVector[2]) * u[2];
-                    p_ny = (0.847 - normalVector[0]) * 0.491 + (1.496 - normalVector[1]) * 0.405 + (26.155 - normalVector[2]) * 0.77;
-                    //Now Rotate!
-                    dtemp = p_nx * Math.cos(2.0 * Math.PI * rotationAngle / 360) - p_ny * Math.sin(2.0 * Math.PI * rotationAngle / 360);
-                    p_ny = p_nx * Math.sin(2.0 * Math.PI * rotationAngle / 360) + p_ny * Math.cos(2.0 * Math.PI * rotationAngle / 360);
-                    p_nx = dtemp;
-                    //Now scale to fit the screen
-                    p_py = pHeight * (p_ny - nymin) / (nymax - nymin);
-                    p_py = pHeight - p_py + pHeight * vShift / 10;
-                    p_px = pWidth * (p_nx - nxmin) / (nxmax - nxmin) + pWidth * hShift / 10;
-
-                    //Now shift the other points going to the screen.
-                    py += pHeight / 2 - p_py;
-                    px += pWidth / 2 - p_px;
-                }
-
-                //Zoom Correction
-                px = (px - pWidth / 2) * (100.0 + dZoom) / 100.0 + pWidth / 2.0;
-                py = (py - pHeight / 2) * (100.0 + dZoom) / 100.0 + pHeight / 2.0;
-
-                if (j == 1 && i > iterationLapse && rangesSet) {
-                    graphics2D.draw(new Line2D.Double(pxold, pyold, px, py));
-                    switch ((i / ((int) (iterations / 40))) % 7) {
-                        case 0 -> graphics2D.setColor(Color.red);
-                        case 1 -> graphics2D.setColor(Color.getHSBColor(1, 1, 1));
-                        case 2 -> graphics2D.setColor(Color.black);
-                        case 3 -> graphics2D.setColor(Color.gray);
-                        case 4 -> graphics2D.setColor(Color.yellow);
-                        case 5 -> graphics2D.setColor(Color.blue);
-                        case 6 -> graphics2D.setColor(Color.magenta);
-                        default -> graphics2D.setColor(Color.getHSBColor(3, 5, 5));
+                //  Рисуем
+                if (i == 1) {
+                    graphics2D.draw(new Line2D.Double(savePx, savePy, px, py));
+                    switch ((j / ((int) (iterations / 40))) % 7) {
+                        case 0 -> graphics2D.setColor(Color.RED);
+                        case 1 -> graphics2D.setColor(Color.ORANGE);
+                        case 2 -> graphics2D.setColor(Color.YELLOW);
+                        case 3 -> graphics2D.setColor(Color.GREEN);
+                        case 4 -> graphics2D.setColor(Color.CYAN);
+                        case 5 -> graphics2D.setColor(Color.BLUE);
+                        case 6 -> graphics2D.setColor(Color.MAGENTA);
+                        default -> graphics2D.setColor(Color.BLACK);
                     }
                 }
             }
         }
-        reDraw = true;
     }
 }

@@ -1,47 +1,31 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 
-public class Window extends Lorenz implements ActionListener {
+public class Window extends Lorenz implements ActionListener, MouseListener, MouseWheelListener {
+    //  Text field
+    static JTextField fieldParameterA;
+    static JTextField fieldParameterB;
+    static JTextField fieldParameterC;
+    static JTextField fieldNormalVectorX;
+    static JTextField fieldNormalVectorY;
+    static JTextField fieldNormalVectorZ;
+    static JTextField fieldIterationsCount;
     //  Size of frame
     final int WIDTH = 900;
     final int HEIGHT = 600;
-
     //  Frame
     JFrame frame;
-
     //  Panels
     JPanel containerPanel;
     JPanel controlPanel;
-    JPanel movePanel;
-
     //  Labels
     JLabel labelParameters;
     JLabel labelNormalVector;
     JLabel labelIterationsCount;
-
-    //  Text field
-    JTextField fieldParameterA;
-    JTextField fieldParameterB;
-    JTextField fieldParameterC;
-    JTextField fieldNormalVectorX;
-    JTextField fieldNormalVectorY;
-    JTextField fieldNormalVectorZ;
-    JTextField fieldIterationsCount;
-
     //  Buttons
     JButton buttonReset;
-    JButton buttonUp;
-    JButton buttonLeft;
-    JButton buttonDown;
-    JButton buttonRight;
-    JButton buttonZoomUp;
-    JButton buttonZoomDown;
     JButton buttonDraw;
-
 
     GridBagConstraints gridBagConstraints;
 
@@ -58,7 +42,7 @@ public class Window extends Lorenz implements ActionListener {
              */
             @Override
             public void keyTyped(KeyEvent e) {
-
+                //  no operation
             }
 
             /**
@@ -70,7 +54,16 @@ public class Window extends Lorenz implements ActionListener {
              */
             @Override
             public void keyPressed(KeyEvent e) {
-
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_UP -> up();
+                    case KeyEvent.VK_DOWN -> down();
+                    case KeyEvent.VK_LEFT -> left();
+                    case KeyEvent.VK_RIGHT -> right();
+                    case KeyEvent.VK_PLUS, KeyEvent.VK_EQUALS -> plus();
+                    case KeyEvent.VK_MINUS -> minus();
+                    case KeyEvent.VK_A -> rotateLeft();
+                    case KeyEvent.VK_D -> rotateRight();
+                }
             }
 
             /**
@@ -82,14 +75,7 @@ public class Window extends Lorenz implements ActionListener {
              */
             @Override
             public void keyReleased(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_UP -> System.out.println("↑");
-                    case KeyEvent.VK_DOWN -> System.out.println("↓");
-                    case KeyEvent.VK_LEFT -> System.out.println("←");
-                    case KeyEvent.VK_RIGHT -> System.out.println("→");
-                    case KeyEvent.VK_PLUS -> System.out.println("+");
-                    case KeyEvent.VK_MINUS, KeyEvent.VK_EQUALS -> System.out.println("-");
-                }
+                //  no operation
             }
         };
         frame = new JFrame();
@@ -111,21 +97,21 @@ public class Window extends Lorenz implements ActionListener {
         gridBagConstraints.anchor = GridBagConstraints.EAST;
 
         //  Parameters
-        labelParameters = new JLabel("Параметры (a, b, c): ");
+        labelParameters = new JLabel("Параметры (σ, r, b): ");
         labelParameters.addKeyListener(listener);
         controlPanel.add(labelParameters, gridBagConstraints);
 
         gridBagConstraints.gridx = 2;
-        fieldParameterA = new JTextField("a: ");
+        fieldParameterA = new JTextField("10");
         fieldParameterA.setColumns(5);
         controlPanel.add(fieldParameterA, gridBagConstraints);
 
-        fieldParameterB = new JTextField("b: ");
+        fieldParameterB = new JTextField("28");
         fieldParameterB.setColumns(5);
         gridBagConstraints.gridx = 3;
         controlPanel.add(fieldParameterB, gridBagConstraints);
 
-        fieldParameterC = new JTextField("c: ");
+        fieldParameterC = new JTextField("2.6666");
         fieldParameterC.setColumns(5);
         gridBagConstraints.gridx = 4;
         controlPanel.add(fieldParameterC, gridBagConstraints);
@@ -144,17 +130,17 @@ public class Window extends Lorenz implements ActionListener {
         gridBagConstraints.gridy = 2;
         controlPanel.add(labelNormalVector, gridBagConstraints);
 
-        fieldNormalVectorX = new JTextField("x: ");
+        fieldNormalVectorX = new JTextField("1");
         fieldNormalVectorX.setColumns(5);
         gridBagConstraints.gridx = 2;
         controlPanel.add(fieldNormalVectorX, gridBagConstraints);
 
-        fieldNormalVectorY = new JTextField("y: ");
+        fieldNormalVectorY = new JTextField("1");
         fieldNormalVectorY.setColumns(5);
         gridBagConstraints.gridx = 3;
         controlPanel.add(fieldNormalVectorY, gridBagConstraints);
 
-        fieldNormalVectorZ = new JTextField("z: ");
+        fieldNormalVectorZ = new JTextField("1");
         fieldNormalVectorZ.setColumns(5);
         gridBagConstraints.gridx = 4;
         controlPanel.add(fieldNormalVectorZ, gridBagConstraints);
@@ -171,61 +157,44 @@ public class Window extends Lorenz implements ActionListener {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         controlPanel.add(labelIterationsCount, gridBagConstraints);
-        fieldIterationsCount = new JTextField("26000");
+        fieldIterationsCount = new JTextField("60000");
         fieldIterationsCount.setColumns(5);
         gridBagConstraints.gridx = 2;
         controlPanel.add(fieldIterationsCount, gridBagConstraints);
-
-        //  Move panel
-        GridBagConstraints moveConstraints = new GridBagConstraints();
-        movePanel = new JPanel();
-        movePanel.addKeyListener(listener);
-        movePanel.setLayout(new GridBagLayout());
-        moveConstraints.fill = GridBagConstraints.NONE;
-        moveConstraints.weightx = 0;
-        moveConstraints.ipady = -10;
-
-        buttonUp = new JButton("Вверх");
-        buttonUp.addKeyListener(listener);
-        movePanel.add(buttonUp, moveConstraints);
-        buttonUp.addActionListener(this);
-
-        buttonDown = new JButton("Вниз");
-        buttonDown.addKeyListener(listener);
-        movePanel.add(buttonDown, moveConstraints);
-        buttonDown.addActionListener(this);
-
-        buttonLeft = new JButton("Влево");
-        buttonLeft.addKeyListener(listener);
-        movePanel.add(buttonLeft, moveConstraints);
-        buttonLeft.addActionListener(this);
-
-        buttonRight = new JButton("Вправо");
-        buttonRight.addKeyListener(listener);
-        movePanel.add(buttonRight, moveConstraints);
-        buttonRight.addActionListener(this);
-
-        buttonZoomUp = new JButton("Увеличить");
-        buttonZoomUp.addKeyListener(listener);
-        movePanel.add(buttonZoomUp, moveConstraints);
-        buttonZoomUp.addActionListener(this);
-
-        buttonZoomDown = new JButton("Уменьшить");
-        buttonZoomDown.addKeyListener(listener);
-        movePanel.add(buttonZoomDown, moveConstraints);
-        buttonZoomDown.addActionListener(this);
-
+        controlPanel.setBackground(Color.getHSBColor(255, 210, 133));
 
         containerPanel = new JPanel();
         containerPanel.addKeyListener(listener);
+        containerPanel.addMouseListener(this);
+        containerPanel.addMouseWheelListener(this);
         containerPanel.setLayout(new BorderLayout());
         containerPanel.add(controlPanel, BorderLayout.NORTH);
-        containerPanel.add(movePanel, BorderLayout.SOUTH);
         containerPanel.add(this, BorderLayout.CENTER);
         containerPanel.setDoubleBuffered(true);
         frame.setFocusable(true);
         frame.add(containerPanel);
         frame.setVisible(true);
+        init();
+    }
+
+    public static double[] getNormalVector() {
+        double[] normalVector = new double[3];
+        normalVector[0] = Double.parseDouble(fieldNormalVectorX.getText());
+        normalVector[1] = Double.parseDouble(fieldNormalVectorY.getText());
+        normalVector[2] = Double.parseDouble(fieldNormalVectorZ.getText());
+        return normalVector;
+    }
+
+    public static double[] getParameters() {
+        double[] parameters = new double[3];
+        parameters[0] = Double.parseDouble(fieldParameterA.getText());
+        parameters[1] = Double.parseDouble(fieldParameterB.getText());
+        parameters[2] = Double.parseDouble(fieldParameterC.getText());
+        return parameters;
+    }
+
+    public static long getIterationCount() {
+        return Long.parseLong(fieldIterationsCount.getText());
     }
 
     /**
@@ -237,20 +206,86 @@ public class Window extends Lorenz implements ActionListener {
     public void actionPerformed(ActionEvent event) {
         Object source = event.getSource();
         if (source.equals(buttonReset)) {
-            System.out.println(buttonReset.getText());
-        } else if (source.equals(buttonUp)) {
-            System.out.println(buttonUp.getText());
-        } else if (source.equals(buttonDown)) {
-            System.out.println(buttonDown.getText());
-        } else if (source.equals(buttonLeft)) {
-            System.out.println(buttonLeft.getText());
-        } else if (source.equals(buttonRight)) {
-            System.out.println(buttonRight.getText());
-        } else if (source.equals(buttonZoomUp)) {
-            System.out.println(buttonZoomUp.getText());
-        } else if (source.equals(buttonZoomDown)) {
-            System.out.println(buttonZoomDown.getText());
+            fieldNormalVectorX.setText("1.0");
+            fieldNormalVectorY.setText("1.0");
+            fieldNormalVectorZ.setText("1.0");
+            fieldParameterA.setText("10.0");
+            fieldParameterB.setText("28.0");
+            fieldParameterC.setText("2.6666");
+            fieldIterationsCount.setText("60000");
+            draw();
+            repaint();
+        } else if (source.equals(buttonDraw)) {
+            draw();
+            repaint();
         }
-        repaint();
+    }
+
+    /**
+     * Invoked when the mouse button has been clicked (pressed
+     * and released) on a component.
+     *
+     * @param e the event to be processed
+     */
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        switch (e.getButton()) {
+            case 1 -> rotateLeft();
+            case 2 -> rotateNull();
+            case 3 -> rotateRight();
+        }
+    }
+
+    /**
+     * Invoked when a mouse button has been pressed on a component.
+     *
+     * @param e the event to be processed
+     */
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    /**
+     * Invoked when a mouse button has been released on a component.
+     *
+     * @param e the event to be processed
+     */
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    /**
+     * Invoked when the mouse enters a component.
+     *
+     * @param e the event to be processed
+     */
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    /**
+     * Invoked when the mouse exits a component.
+     *
+     * @param e the event to be processed
+     */
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+
+    /**
+     * Invoked when the mouse wheel is rotated.
+     *
+     * @param e the event to be processed
+     * @see MouseWheelEvent
+     */
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        if (e.getWheelRotation() == 1)
+            minus();
+        else if (e.getWheelRotation() == -1)
+            plus();
     }
 }
